@@ -1,6 +1,6 @@
 package com.example.cpdebuggerbackend.services;
 
-import com.example.cpdebuggerbackend.CompilationException;
+import com.example.cpdebuggerbackend.exceptions.CompilationException;
 import com.example.cpdebuggerbackend.utils.Utils;
 import org.springframework.stereotype.Service;
 
@@ -11,17 +11,17 @@ import static com.example.cpdebuggerbackend.constants.AppConstants.*;
 @Service
 public class Compiler {
 
-    public String compile(String filename, String lang) throws Exception {
+    public String compile(String filename, String lang, Filetype filetype) throws Exception {
         Lang language = Lang.valueOf(lang);
 
         return switch (language) {
-            case CPP -> compileCppCode(filename);
-            case JAVA -> compileJavaCode(filename);
-            default -> throw new Exception("Compilation is not supported for " + language);
+            case cpp -> compileCppCode(filename, filetype);
+            case java -> compileJavaCode(filename, filetype);
+            default -> throw new RuntimeException("Compilation is not supported for " + language);
         };
     }
 
-    private String compileCppCode(String filename) throws Exception {
+    private String compileCppCode(String filename, Filetype filetype) throws Exception {
         String executableFilename = Utils.generateUniqueFilename();
 
         ProcessBuilder processBuilder = new ProcessBuilder();
@@ -34,13 +34,13 @@ public class Compiler {
         int exitCode = compileProcess.waitFor();
 
         if (exitCode != 0) {
-            throw new CompilationException(output);
+            throw new CompilationException(output, filename, filetype);
         }
 
         return executableFilename;
     }
 
-    private String compileJavaCode(String filename) {
+    private String compileJavaCode(String filename, Filetype filetype) {
         return "";
     }
 }

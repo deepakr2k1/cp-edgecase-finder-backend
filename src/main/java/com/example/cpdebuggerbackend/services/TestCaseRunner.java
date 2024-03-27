@@ -1,5 +1,6 @@
 package com.example.cpdebuggerbackend.services;
 
+import com.example.cpdebuggerbackend.exceptions.ExecTimedOutException;
 import com.example.cpdebuggerbackend.models.ResultDto;
 import com.example.cpdebuggerbackend.utils.Utils;
 import org.springframework.stereotype.Service;
@@ -7,39 +8,49 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 import static com.example.cpdebuggerbackend.constants.AppConstants.*;
 
 @Service
 public class TestCaseRunner {
 
-    public ResultDto runTestCases(String executable1, String executable2, List<String> testCaseFilenames) throws Exception {
+    public ResultDto runTestCases(String correctCodeExec, String testingCodeExec, List<String> testCaseFilenames) throws Exception {
         for(String testCaseFile: testCaseFilenames) {
             ExecutorService executor = Executors.newFixedThreadPool(2);
-            CompletableFuture<String> task1 = CompletableFuture.supplyAsync(() -> {
+            CompletableFuture<String> executeCorrectCodeTask = CompletableFuture.supplyAsync(() -> {
                 try {
-                    return execute(executable1, testCaseFile);
+                    return execute(correctCodeExec, testCaseFile);
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }, executor);
-            CompletableFuture<String> task2 = CompletableFuture.supplyAsync(() -> {
+            CompletableFuture<String> executeTestingCodeTask = CompletableFuture.supplyAsync(() -> {
                 try {
-                    return execute(executable2, testCaseFile);
+                    return execute(testingCodeExec, testCaseFile);
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }, executor);
 
-            CompletableFuture<Void> allTasks = CompletableFuture.allOf(task1, task2);
-            allTasks.get();
-            executor.shutdown();
+            try {
+                CompletableFuture<Void> allTasks = CompletableFuture.allOf(executeCorrectCodeTask, executeTestingCodeTask);
+                allTasks.get(EXECUTE_THREAD_TIMEOUT, TimeUnit.SECONDS);
+            } catch(Exception e) {
+                StringBuilder sb = new StringBuilder();
+                if (!executeCorrectCodeTask.isDone()) {
+                    sb.append("Correct code is running for too long [").append(EXECUTE_THREAD_TIMEOUT).append(" sec]\n");
+                }
+                if (!executeTestingCodeTask.isDone()) {
+                    sb.append("Testing code is running for too long [").append(EXECUTE_THREAD_TIMEOUT).append(" sec]\n");
+                }
+                throw new ExecTimedOutException(sb.toString(), testCaseFile);
+            } finally {
+                executor.shutdown();
+            }
 
-            String ouputFile1 = task1.get();
-            String ouputFile2 = task2.get();
+            String ouputFile1 = executeCorrectCodeTask.get();
+            String ouputFile2 = executeTestingCodeTask.get();
 
             Boolean isSameOutput = validateOutput(ouputFile1, ouputFile2);
             if(!isSameOutput) {

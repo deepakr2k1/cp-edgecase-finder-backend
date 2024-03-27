@@ -1,5 +1,7 @@
 package com.example.cpdebuggerbackend.utils;
 
+import com.example.cpdebuggerbackend.constants.AppConstants.Filetype;
+
 import java.io.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -45,4 +47,20 @@ public class Utils {
         return content.toString();
     }
 
+    public static String getFiletypeString(Filetype filetype) {
+        switch (filetype) {
+            case CORRECT_CODE -> {
+                return "CORRECT CODE";
+            }
+            case TESTING_CODE -> {
+                return "TESTING CODE";
+            }
+            case INPUT_GENERATING_CODE -> {
+                return "INPUT GENERATING CODE";
+            }
+            default -> {
+                return "";
+            }
+        }
+    }
 }
