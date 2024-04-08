@@ -6,6 +6,7 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static com.example.cpdebuggerbackend.constants.AppConstants.TXT_EXTENSION;
 import static com.example.cpdebuggerbackend.constants.AppConstants.WORKING_DIR;
 
 public class Utils {
@@ -62,5 +63,18 @@ public class Utils {
                 return "";
             }
         }
+    }
+
+    public static String createRandomFolder() throws IOException, InterruptedException {
+        String folderName = generateUniqueFilename();
+
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        processBuilder.directory(new File(WORKING_DIR));
+        processBuilder.command("mkdir", folderName);
+
+        Process createFolderProcess = processBuilder.start();
+        createFolderProcess.waitFor();
+
+        return folderName;
     }
 }

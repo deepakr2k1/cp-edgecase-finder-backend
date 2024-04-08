@@ -29,6 +29,7 @@ public class EdgeCaseFinder {
 
             return ResponseEntity.status(HttpStatus.OK).body(resultDto);
         } catch (Exception e) {
+            System.err.println("==> " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ResultDto.builder().errorMessage(e.getMessage()).build());
         }
     }

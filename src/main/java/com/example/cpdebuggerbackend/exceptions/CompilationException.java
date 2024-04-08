@@ -14,13 +14,13 @@ import java.util.List;
 @Data
 public class CompilationException extends Exception {
 
-    private String filename;
     private Filetype filetype;
+    private String filename;
 
     public CompilationException(String message, String filename, Filetype filetype) {
         super(message);
-        this.filename = filename;
         this.filetype = filetype;
+        this.filename = filename;
     }
 
     @Override

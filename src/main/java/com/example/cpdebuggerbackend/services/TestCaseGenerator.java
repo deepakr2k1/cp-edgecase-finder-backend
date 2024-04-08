@@ -1,35 +1,67 @@
 package com.example.cpdebuggerbackend.services;
 
+import com.example.cpdebuggerbackend.exceptions.ExecTimedOutException;
 import com.example.cpdebuggerbackend.utils.Utils;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import static com.example.cpdebuggerbackend.constants.AppConstants.*;
+import static com.example.cpdebuggerbackend.constants.AppConstants.Filetype.INPUT_GENERATING_CODE;
 
 @Service
 public class TestCaseGenerator {
+
     public List<String> generate(String executableFilename, Integer testRuns) throws Exception {
-        ProcessBuilder processBuilder = new ProcessBuilder();
-        processBuilder.directory(new File(WORKING_DIR));
-        processBuilder.command("./" + executableFilename);
-
-        String outputFilename = Utils.generateUniqueFilename();
-
-        List<String> testCaseFilenames = new ArrayList<>();
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+        List<CompletableFuture<String>> executeInputGeneratingTasks = new ArrayList<>();
 
         for(int testRun = 1; testRun <= testRuns; testRun++) {
-            String testCaseFilename = outputFilename + FILE_SEPARATOR + TEST_CASE_SUFFIX + FILE_SEPARATOR + testRun + TXT_EXTENSION;
-            String outputFilepath = WORKING_DIR + testCaseFilename;
-            testCaseFilenames.add(testCaseFilename);
+            ProcessBuilder processBuilder = new ProcessBuilder();
+            processBuilder.directory(new File(WORKING_DIR));
+            processBuilder.command("./" + executableFilename);
 
-            File outputFile = new File(outputFilepath);
-            processBuilder.redirectOutput(outputFile);
+            CompletableFuture<String> executeInputGenerationTask = CompletableFuture.supplyAsync(() -> {
+                String testCaseFilename = Utils.generateUniqueFilename() + TXT_EXTENSION;
+                String outputFilepath = WORKING_DIR + testCaseFilename;
 
-            Process executionProcess = processBuilder.start();
-            executionProcess.waitFor();
+                File outputFile = new File(outputFilepath);
+                processBuilder.redirectOutput(outputFile);
+
+                try {
+                    Process executionProcess = null;
+                    executionProcess = processBuilder.start();
+                    executionProcess.waitFor();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                return testCaseFilename;
+            });
+            executeInputGeneratingTasks.add(executeInputGenerationTask);
+        }
+
+        CompletableFuture<Void> allTasks = CompletableFuture.allOf(
+                executeInputGeneratingTasks.toArray(new CompletableFuture[0]));
+
+
+        List<String> testCaseFilenames;
+        try {
+            allTasks.get(EXECUTE_THREAD_TIMEOUT, TimeUnit.SECONDS);
+            testCaseFilenames = executeInputGeneratingTasks.stream().map(CompletableFuture::join).toList();
+        } catch (Exception e) {
+            executeInputGeneratingTasks.forEach(task -> task.cancel(true));
+            StringBuilder sb = new StringBuilder();
+            sb.append("Input Generating code is running for too long [").append(EXECUTE_THREAD_TIMEOUT).append(" sec]\n");
+            throw new ExecTimedOutException(sb.toString(), null);
+        } finally {
+            executor.shutdown();
         }
 
         return testCaseFilenames;

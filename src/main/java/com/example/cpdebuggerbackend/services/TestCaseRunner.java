@@ -16,6 +16,10 @@ import static com.example.cpdebuggerbackend.constants.AppConstants.*;
 public class TestCaseRunner {
 
     public ResultDto runTestCases(String correctCodeExec, String testingCodeExec, List<String> testCaseFilenames) throws Exception {
+        System.out.println(correctCodeExec);
+        System.out.println(testingCodeExec);
+        System.out.println(testCaseFilenames);
+
         for(String testCaseFile: testCaseFilenames) {
             ExecutorService executor = Executors.newFixedThreadPool(2);
             CompletableFuture<String> executeCorrectCodeTask = CompletableFuture.supplyAsync(() -> {

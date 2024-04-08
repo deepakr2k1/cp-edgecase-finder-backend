@@ -24,11 +24,13 @@ public class EdgeCaseFinderService {
     TestCaseRunner testCaseRunner;
 
     public ResultDto find(Code inputGeneratingCode, Code correctCode, Code testingCode, Integer testRuns) throws Exception {
+        // Compiling inputGeneratingCode, correctCode, testingCode
         List<String> allExecutables = compileAll(inputGeneratingCode, correctCode, testingCode);
         String inputGeneratingExec = allExecutables.get(0);
         String correctCodeExec = allExecutables.get(1);
         String testingCodeExec = allExecutables.get(2);
 
+        // Generating test cases from input generating executable
         List<String> testCaseFilenames = testCaseGenerator.generate(inputGeneratingExec, testRuns);
 
         try {
@@ -42,6 +44,7 @@ public class EdgeCaseFinderService {
                 resultDto.setCorrectCodeOutput(output1);
                 resultDto.setTestCodeOutput(output2);
             }
+            System.out.println("TEST CASE RUN DONE");
             return resultDto;
         } catch(ExecTimedOutException e) {
             StringBuilder sb = new StringBuilder(e.getMessage());
@@ -55,27 +58,27 @@ public class EdgeCaseFinderService {
         ExecutorService executor = Executors.newFixedThreadPool(3);
         CompletableFuture<String> compileInputGeneratingCode = CompletableFuture.supplyAsync(() -> {
             try {
-                String filename = Utils.generateUniqueFilename();
-                Utils.saveDataIntoFile(WORKING_DIR + filename + CPP_EXTENSION, inputGeneratingCode.getContent());
-                return compiler.compile(filename + CPP_EXTENSION, inputGeneratingCode.getLanguage(), Filetype.INPUT_GENERATING_CODE);
+                String codeFileName = Utils.generateUniqueFilename() + CPP_EXTENSION;
+                Utils.saveDataIntoFile(WORKING_DIR + codeFileName, inputGeneratingCode.getContent());
+                return compiler.compile(codeFileName, inputGeneratingCode.getLanguage(), Filetype.INPUT_GENERATING_CODE);
             } catch (Exception e) {
                 throw new RuntimeException(e.getMessage());
             }
         }, executor);
         CompletableFuture<String> compileCorrectCode = CompletableFuture.supplyAsync(() -> {
             try {
-                String filename = Utils.generateUniqueFilename();
-                Utils.saveDataIntoFile(WORKING_DIR + filename + CPP_EXTENSION, correctCode.getContent());
-                return compiler.compile(filename + CPP_EXTENSION, correctCode.getLanguage(), Filetype.CORRECT_CODE);
+                String codeFileName = Utils.generateUniqueFilename() + CPP_EXTENSION;
+                Utils.saveDataIntoFile(WORKING_DIR + codeFileName, correctCode.getContent());
+                return compiler.compile(codeFileName, correctCode.getLanguage(), Filetype.CORRECT_CODE);
             } catch (Exception e) {
                 throw new RuntimeException(e.getMessage());
             }
         }, executor);
         CompletableFuture<String> compileTestingCode = CompletableFuture.supplyAsync(() -> {
             try {
-                String filename = Utils.generateUniqueFilename();
-                Utils.saveDataIntoFile(WORKING_DIR + filename + CPP_EXTENSION, testingCode.getContent());
-                return compiler.compile(filename + CPP_EXTENSION, testingCode.getLanguage(), Filetype.TESTING_CODE);
+                String codeFileName = Utils.generateUniqueFilename() + CPP_EXTENSION;
+                Utils.saveDataIntoFile(WORKING_DIR + codeFileName, testingCode.getContent());
+                return compiler.compile(codeFileName, testingCode.getLanguage(), Filetype.TESTING_CODE);
             } catch (Exception e) {
                 throw new RuntimeException(e.getMessage());
             }
