@@ -2,6 +2,7 @@ package com.example.cpdebuggerbackend.services;
 
 import com.example.cpdebuggerbackend.exceptions.CompilationException;
 import com.example.cpdebuggerbackend.exceptions.ExecTimedOutException;
+import com.example.cpdebuggerbackend.exceptions.SegmentationFaultException;
 import com.example.cpdebuggerbackend.models.Code;
 import com.example.cpdebuggerbackend.models.ResultDto;
 import com.example.cpdebuggerbackend.utils.Utils;
@@ -34,9 +35,9 @@ public class EdgeCaseFinderService {
         List<String> testCaseFilenames = testCaseGenerator.generate(inputGeneratingExec, testRuns);
 
         try {
+            // Run Test cases on Correct & Testing code
             ResultDto resultDto = testCaseRunner.runTestCases(correctCodeExec, testingCodeExec, testCaseFilenames);
             if(!resultDto.getIsSameOutput()) {
-                System.out.println(resultDto.toString());
                 String input = Utils.readFile(resultDto.getInputFilename());
                 String output1 = Utils.readFile(resultDto.getCorrectCodeOutputFilename());
                 String output2 = Utils.readFile(resultDto.getTestCodeOutputFilename());
@@ -44,9 +45,8 @@ public class EdgeCaseFinderService {
                 resultDto.setCorrectCodeOutput(output1);
                 resultDto.setTestCodeOutput(output2);
             }
-            System.out.println("TEST CASE RUN DONE");
             return resultDto;
-        } catch(ExecTimedOutException e) {
+        } catch(ExecTimedOutException | SegmentationFaultException  e) {
             StringBuilder sb = new StringBuilder(e.getMessage());
             String input = Utils.readFile(e.getTestCaseFilename());
             sb.append("\nInput\n").append(input);

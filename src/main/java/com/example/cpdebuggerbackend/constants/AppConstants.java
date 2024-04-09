@@ -6,8 +6,6 @@ import org.springframework.stereotype.Component;
 public class AppConstants {
 
     public static final String WORKING_DIR = "/Users/deepakr2k1/IdeaProjects/cp-debugger/cp-edge-case-finder-backend/code-files/";
-    public static final String FILE_SEPARATOR = "-";
-    public static final String DIR_SEPERATOR = "/";
     public static final String TXT_EXTENSION = ".txt";
     public static final String CPP_EXTENSION = ".cpp";
     public static final String JAVA_EXTENSION = ".java";

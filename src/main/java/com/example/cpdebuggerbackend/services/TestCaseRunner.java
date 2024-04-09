@@ -1,6 +1,7 @@
 package com.example.cpdebuggerbackend.services;
 
 import com.example.cpdebuggerbackend.exceptions.ExecTimedOutException;
+import com.example.cpdebuggerbackend.exceptions.SegmentationFaultException;
 import com.example.cpdebuggerbackend.models.ResultDto;
 import com.example.cpdebuggerbackend.utils.Utils;
 import org.springframework.stereotype.Service;
@@ -16,15 +17,13 @@ import static com.example.cpdebuggerbackend.constants.AppConstants.*;
 public class TestCaseRunner {
 
     public ResultDto runTestCases(String correctCodeExec, String testingCodeExec, List<String> testCaseFilenames) throws Exception {
-        System.out.println(correctCodeExec);
-        System.out.println(testingCodeExec);
-        System.out.println(testCaseFilenames);
-
         for(String testCaseFile: testCaseFilenames) {
             ExecutorService executor = Executors.newFixedThreadPool(2);
             CompletableFuture<String> executeCorrectCodeTask = CompletableFuture.supplyAsync(() -> {
                 try {
                     return execute(correctCodeExec, testCaseFile);
+                } catch (SegmentationFaultException e) {
+                    throw e;
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -32,6 +31,8 @@ public class TestCaseRunner {
             CompletableFuture<String> executeTestingCodeTask = CompletableFuture.supplyAsync(() -> {
                 try {
                     return execute(testingCodeExec, testCaseFile);
+                } catch (SegmentationFaultException e) {
+                    throw e;
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -41,14 +42,25 @@ public class TestCaseRunner {
                 CompletableFuture<Void> allTasks = CompletableFuture.allOf(executeCorrectCodeTask, executeTestingCodeTask);
                 allTasks.get(EXECUTE_THREAD_TIMEOUT, TimeUnit.SECONDS);
             } catch(Exception e) {
-                StringBuilder sb = new StringBuilder();
-                if (!executeCorrectCodeTask.isDone()) {
-                    sb.append("Correct code is running for too long [").append(EXECUTE_THREAD_TIMEOUT).append(" sec]\n");
+                if(e.getCause() instanceof SegmentationFaultException) {
+                    SegmentationFaultException segFault = (SegmentationFaultException) e.getCause();
+                    StringBuilder sb = new StringBuilder();
+                    if(correctCodeExec.equals(segFault.getExecutableFileName())) {
+                        sb.append("Segmentation Fault in Correct Code\n");
+                    } else {
+                        sb.append("Segmentation Fault in Testing Code\n");
+                    }
+                    throw new SegmentationFaultException(sb.toString(), segFault.getTestCaseFilename(), segFault.getExecutableFileName());
+                } else {
+                    StringBuilder sb = new StringBuilder();
+                    if (!executeCorrectCodeTask.isDone()) {
+                        sb.append("Correct code is running for too long [").append(EXECUTE_THREAD_TIMEOUT).append(" sec]\n");
+                    }
+                    if (!executeTestingCodeTask.isDone()) {
+                        sb.append("Testing code is running for too long [").append(EXECUTE_THREAD_TIMEOUT).append(" sec]\n");
+                    }
+                    throw new ExecTimedOutException(sb.toString(), testCaseFile);
                 }
-                if (!executeTestingCodeTask.isDone()) {
-                    sb.append("Testing code is running for too long [").append(EXECUTE_THREAD_TIMEOUT).append(" sec]\n");
-                }
-                throw new ExecTimedOutException(sb.toString(), testCaseFile);
             } finally {
                 executor.shutdown();
             }
@@ -69,7 +81,7 @@ public class TestCaseRunner {
         return ResultDto.builder().isSameOutput(true).build();
     }
 
-    public String execute(String executableFilename, String inputFilename) throws IOException, InterruptedException {
+    public String execute(String executableFilename, String inputFilename) throws IOException, InterruptedException, SegmentationFaultException {
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.directory(new File(WORKING_DIR));
         processBuilder.command("./" + executableFilename);
@@ -86,7 +98,10 @@ public class TestCaseRunner {
         processBuilder.redirectInput(inputFile);
 
         Process executionProcess = processBuilder.start();
-        executionProcess.waitFor();
+        int exitCode = executionProcess.waitFor();
+        if(exitCode != 0) {
+            throw new SegmentationFaultException("Segmentation Fault", inputFilename, executableFilename);
+        }
 
         return outputFilenameWithExtension;
     }
