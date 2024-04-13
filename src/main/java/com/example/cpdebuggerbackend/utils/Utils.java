@@ -99,9 +99,7 @@ public class Utils {
             throw new RuntimeException("executable filename extension is not present");
         }
         String extension = splits[splits.length - 1];
-        System.out.println(filename);
-        System.out.println(Arrays.toString(splits));
-        System.out.println(extension);
+
         switch(extension) {
             case "class":
                 return Lang.java;

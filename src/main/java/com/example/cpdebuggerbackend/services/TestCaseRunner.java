@@ -46,9 +46,9 @@ public class TestCaseRunner {
                     SegmentationFaultException segFault = (SegmentationFaultException) e.getCause();
                     StringBuilder sb = new StringBuilder();
                     if(correctCodeExec.equals(segFault.getExecutableFileName())) {
-                        sb.append("Segmentation Fault in Correct Code\n");
+                        sb.append("Error in Correct Code:\n").append(segFault.getMessage()).append("\n");
                     } else {
-                        sb.append("Segmentation Fault in Testing Code\n");
+                        sb.append("Error in Testing Code:\n").append(segFault.getMessage()).append("\n");
                     }
                     throw new SegmentationFaultException(sb.toString(), segFault.getTestCaseFilename(), segFault.getExecutableFileName());
                 } else {
@@ -89,6 +89,7 @@ public class TestCaseRunner {
         String outputFilepath = WORKING_DIR + outputFilename;
         File outputFile = new File(outputFilepath);
         processBuilder.redirectOutput(outputFile);
+        processBuilder.redirectErrorStream(true);
 
         String inputFilePath = WORKING_DIR + inputFilename;
         File inputFile = new File(inputFilePath);
@@ -97,7 +98,7 @@ public class TestCaseRunner {
         Process executionProcess = processBuilder.start();
         int exitCode = executionProcess.waitFor();
         if(exitCode != 0) {
-            throw new SegmentationFaultException("Segmentation Fault", inputFilename, executableFilename);
+            throw new SegmentationFaultException(Utils.readFile(outputFilename), inputFilename, executableFilename);
         }
 
         return outputFilename;

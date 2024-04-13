@@ -34,11 +34,6 @@ public class EdgeCaseFinderService {
         // Generating test cases from input generating executable
         List<String> testCaseFilenames = testCaseGenerator.generate(inputGeneratingExec, testRuns);
 
-        System.out.println("inputGeneratingExec: " + inputGeneratingExec);
-        System.out.println("correctCodeExec: " + correctCodeExec);
-        System.out.println("testingCodeExec: " + testingCodeExec);
-        System.out.println("testCaseFilenames: " + testCaseFilenames);
-
         try {
             // Run Test cases on Correct & Testing code
             ResultDto resultDto = testCaseRunner.runTestCases(correctCodeExec, testingCodeExec, testCaseFilenames);
@@ -129,7 +124,6 @@ public class EdgeCaseFinderService {
             return codeFileName;
         } else if (code.getLanguage().equals(Lang.py.toString())) {
             String codeFileName = Utils.generateUniqueFilename() + PYTHON_EXTENSION;
-            System.out.println(codeFileName);
             Utils.saveDataIntoFile(WORKING_DIR + codeFileName, code.getContent());
             return codeFileName;
         } else {
