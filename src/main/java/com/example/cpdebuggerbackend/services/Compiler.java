@@ -17,7 +17,7 @@ public class Compiler {
         return switch (language) {
             case cpp -> compileCppCode(filename, filetype);
             case java -> compileJavaCode(filename, filetype);
-            default -> throw new RuntimeException("Compilation is not supported for " + language);
+            case py -> filename;
         };
     }
 
@@ -40,7 +40,22 @@ public class Compiler {
         return executableFilename;
     }
 
-    private String compileJavaCode(String filename, Filetype filetype) {
-        return "";
+    private String compileJavaCode(String filename, Filetype filetype) throws Exception {
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        processBuilder.directory(new File(WORKING_DIR));
+        processBuilder.command("javac", filename);
+        processBuilder.redirectErrorStream(true);
+
+        Process compileProcess = processBuilder.start();
+        String output = Utils.readProcessOutput(compileProcess);
+        int exitCode = compileProcess.waitFor();
+
+        if (exitCode != 0) {
+            throw new CompilationException(output, filename, filetype);
+        }
+
+        String executableFilename = filename.replace(".java", ".class");
+
+        return executableFilename;
     }
 }

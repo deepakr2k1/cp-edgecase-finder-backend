@@ -1,6 +1,5 @@
 package com.example.cpdebuggerbackend.services;
 
-import com.example.cpdebuggerbackend.exceptions.CompilationException;
 import com.example.cpdebuggerbackend.exceptions.ExecTimedOutException;
 import com.example.cpdebuggerbackend.exceptions.SegmentationFaultException;
 import com.example.cpdebuggerbackend.models.Code;
@@ -9,6 +8,7 @@ import com.example.cpdebuggerbackend.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -34,6 +34,11 @@ public class EdgeCaseFinderService {
         // Generating test cases from input generating executable
         List<String> testCaseFilenames = testCaseGenerator.generate(inputGeneratingExec, testRuns);
 
+        System.out.println("inputGeneratingExec: " + inputGeneratingExec);
+        System.out.println("correctCodeExec: " + correctCodeExec);
+        System.out.println("testingCodeExec: " + testingCodeExec);
+        System.out.println("testCaseFilenames: " + testCaseFilenames);
+
         try {
             // Run Test cases on Correct & Testing code
             ResultDto resultDto = testCaseRunner.runTestCases(correctCodeExec, testingCodeExec, testCaseFilenames);
@@ -58,8 +63,7 @@ public class EdgeCaseFinderService {
         ExecutorService executor = Executors.newFixedThreadPool(3);
         CompletableFuture<String> compileInputGeneratingCode = CompletableFuture.supplyAsync(() -> {
             try {
-                String codeFileName = Utils.generateUniqueFilename() + CPP_EXTENSION;
-                Utils.saveDataIntoFile(WORKING_DIR + codeFileName, inputGeneratingCode.getContent());
+                String codeFileName = saveCode(inputGeneratingCode);
                 return compiler.compile(codeFileName, inputGeneratingCode.getLanguage(), Filetype.INPUT_GENERATING_CODE);
             } catch (Exception e) {
                 throw new RuntimeException(e.getMessage());
@@ -67,8 +71,7 @@ public class EdgeCaseFinderService {
         }, executor);
         CompletableFuture<String> compileCorrectCode = CompletableFuture.supplyAsync(() -> {
             try {
-                String codeFileName = Utils.generateUniqueFilename() + CPP_EXTENSION;
-                Utils.saveDataIntoFile(WORKING_DIR + codeFileName, correctCode.getContent());
+                String codeFileName = saveCode(correctCode);
                 return compiler.compile(codeFileName, correctCode.getLanguage(), Filetype.CORRECT_CODE);
             } catch (Exception e) {
                 throw new RuntimeException(e.getMessage());
@@ -76,8 +79,7 @@ public class EdgeCaseFinderService {
         }, executor);
         CompletableFuture<String> compileTestingCode = CompletableFuture.supplyAsync(() -> {
             try {
-                String codeFileName = Utils.generateUniqueFilename() + CPP_EXTENSION;
-                Utils.saveDataIntoFile(WORKING_DIR + codeFileName, testingCode.getContent());
+                String codeFileName = saveCode(testingCode);
                 return compiler.compile(codeFileName, testingCode.getLanguage(), Filetype.TESTING_CODE);
             } catch (Exception e) {
                 throw new RuntimeException(e.getMessage());
@@ -114,6 +116,25 @@ public class EdgeCaseFinderService {
         allExecutables.add(compileTestingCode.get());
 
         return allExecutables;
+    }
+
+    public String saveCode(Code code) throws IOException, InterruptedException {
+        if(code.getLanguage().equals(Lang.cpp.toString())) {
+            String codeFileName = Utils.generateUniqueFilename() + CPP_EXTENSION;
+            Utils.saveDataIntoFile(WORKING_DIR + codeFileName, code.getContent());
+            return codeFileName;
+        } else if (code.getLanguage().equals(Lang.java.toString())) {
+            String codeFileName = Utils.createRandomFolder() + "/" + Utils.findMainClassInJavaCode(code.getContent()) + JAVA_EXTENSION;
+            Utils.saveDataIntoFile(WORKING_DIR + codeFileName, code.getContent());
+            return codeFileName;
+        } else if (code.getLanguage().equals(Lang.py.toString())) {
+            String codeFileName = Utils.generateUniqueFilename() + PYTHON_EXTENSION;
+            System.out.println(codeFileName);
+            Utils.saveDataIntoFile(WORKING_DIR + codeFileName, code.getContent());
+            return codeFileName;
+        } else {
+            throw new RuntimeException("Language not supported!");
+        }
     }
 
 }

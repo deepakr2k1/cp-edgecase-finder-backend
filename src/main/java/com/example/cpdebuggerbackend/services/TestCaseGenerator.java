@@ -5,16 +5,11 @@ import com.example.cpdebuggerbackend.utils.Utils;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 
 import static com.example.cpdebuggerbackend.constants.AppConstants.*;
-import static com.example.cpdebuggerbackend.constants.AppConstants.Filetype.INPUT_GENERATING_CODE;
 
 @Service
 public class TestCaseGenerator {
@@ -24,9 +19,7 @@ public class TestCaseGenerator {
         List<CompletableFuture<String>> executeInputGeneratingTasks = new ArrayList<>();
 
         for(int testRun = 1; testRun <= testRuns; testRun++) {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.directory(new File(WORKING_DIR));
-            processBuilder.command("./" + executableFilename);
+            ProcessBuilder processBuilder = Utils.createExecProcessBuilder(executableFilename);
 
             CompletableFuture<String> executeInputGenerationTask = CompletableFuture.supplyAsync(() -> {
                 String testCaseFilename = Utils.generateUniqueFilename() + TXT_EXTENSION;

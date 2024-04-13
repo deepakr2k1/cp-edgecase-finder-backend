@@ -82,14 +82,11 @@ public class TestCaseRunner {
     }
 
     public String execute(String executableFilename, String inputFilename) throws IOException, InterruptedException, SegmentationFaultException {
-        ProcessBuilder processBuilder = new ProcessBuilder();
-        processBuilder.directory(new File(WORKING_DIR));
-        processBuilder.command("./" + executableFilename);
+        ProcessBuilder processBuilder = Utils.createExecProcessBuilder(executableFilename);
 
-        String outputFilename = Utils.generateUniqueFilename();
-        String outputFilenameWithExtension = outputFilename + TXT_EXTENSION;
+        String outputFilename = Utils.generateUniqueFilename() + TXT_EXTENSION;
 
-        String outputFilepath = WORKING_DIR + outputFilenameWithExtension;
+        String outputFilepath = WORKING_DIR + outputFilename;
         File outputFile = new File(outputFilepath);
         processBuilder.redirectOutput(outputFile);
 
@@ -103,7 +100,7 @@ public class TestCaseRunner {
             throw new SegmentationFaultException("Segmentation Fault", inputFilename, executableFilename);
         }
 
-        return outputFilenameWithExtension;
+        return outputFilename;
     }
 
     public Boolean validateOutput(String filename1, String filename2) throws InterruptedException, IOException {

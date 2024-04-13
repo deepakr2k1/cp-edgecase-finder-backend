@@ -1,12 +1,15 @@
 package com.example.cpdebuggerbackend.utils;
 
+import com.example.cpdebuggerbackend.constants.AppConstants.Lang;
 import com.example.cpdebuggerbackend.constants.AppConstants.Filetype;
 
 import java.io.*;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import static com.example.cpdebuggerbackend.constants.AppConstants.TXT_EXTENSION;
 import static com.example.cpdebuggerbackend.constants.AppConstants.WORKING_DIR;
 
 public class Utils {
@@ -76,5 +79,59 @@ public class Utils {
         createFolderProcess.waitFor();
 
         return folderName;
+    }
+
+    public static String findMainClassInJavaCode(String javaCode) {
+        Pattern pattern = Pattern.compile("class\\s+(\\w+)\\s*\\{");
+        Matcher matcher = pattern.matcher(javaCode);
+
+        if (matcher.find()) {
+            String className = matcher.group(1);
+            return className;
+        } else {
+            throw new RuntimeException("No Java class found");
+        }
+    }
+
+    public static Lang getLangFromExecFilename(String filename) {
+        String[] splits = filename.split("[./]");
+        if(splits.length == 0) {
+            throw new RuntimeException("executable filename extension is not present");
+        }
+        String extension = splits[splits.length - 1];
+        System.out.println(filename);
+        System.out.println(Arrays.toString(splits));
+        System.out.println(extension);
+        switch(extension) {
+            case "class":
+                return Lang.java;
+            case "py":
+                return Lang.py;
+            default:
+                return Lang.cpp;
+        }
+    }
+
+    public static ProcessBuilder createExecProcessBuilder(String executableFilename) {
+        Lang lang = getLangFromExecFilename(executableFilename);
+        if(lang.equals(Lang.cpp)) {
+            ProcessBuilder processBuilder = new ProcessBuilder();
+            processBuilder.directory(new File(WORKING_DIR));
+            processBuilder.command("./" + executableFilename);
+            return processBuilder;
+        } else if(lang.equals(Lang.java)) {
+            ProcessBuilder processBuilder = new ProcessBuilder();
+            String[] splits = executableFilename.split("/");
+            processBuilder.directory(new File(WORKING_DIR + "/" + splits[0]));
+            processBuilder.command("java", splits[1].replace(".class", ""));
+            return processBuilder;
+        } else if(lang.equals(Lang.py)) {
+            ProcessBuilder processBuilder = new ProcessBuilder();
+            processBuilder.directory(new File(WORKING_DIR));
+            processBuilder.command("python3", executableFilename);
+            return processBuilder;
+        } else {
+            throw new RuntimeException("Language not supported");
+        }
     }
 }
