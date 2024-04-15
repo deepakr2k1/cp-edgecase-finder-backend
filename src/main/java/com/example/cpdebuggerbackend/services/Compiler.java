@@ -17,7 +17,7 @@ public class Compiler {
         return switch (language) {
             case cpp -> compileCppCode(filename, filetype);
             case java -> compileJavaCode(filename, filetype);
-            case py -> filename;
+            case python -> filename;
         };
     }
 

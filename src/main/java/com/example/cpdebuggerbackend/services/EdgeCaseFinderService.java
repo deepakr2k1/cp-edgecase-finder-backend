@@ -122,7 +122,7 @@ public class EdgeCaseFinderService {
             String codeFileName = Utils.createRandomFolder() + "/" + Utils.findMainClassInJavaCode(code.getContent()) + JAVA_EXTENSION;
             Utils.saveDataIntoFile(WORKING_DIR + codeFileName, code.getContent());
             return codeFileName;
-        } else if (code.getLanguage().equals(Lang.py.toString())) {
+        } else if (code.getLanguage().equals(Lang.python.toString())) {
             String codeFileName = Utils.generateUniqueFilename() + PYTHON_EXTENSION;
             Utils.saveDataIntoFile(WORKING_DIR + codeFileName, code.getContent());
             return codeFileName;

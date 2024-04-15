@@ -104,7 +104,7 @@ public class Utils {
             case "class":
                 return Lang.java;
             case "py":
-                return Lang.py;
+                return Lang.python;
             default:
                 return Lang.cpp;
         }
@@ -123,7 +123,7 @@ public class Utils {
             processBuilder.directory(new File(WORKING_DIR + "/" + splits[0]));
             processBuilder.command("java", splits[1].replace(".class", ""));
             return processBuilder;
-        } else if(lang.equals(Lang.py)) {
+        } else if(lang.equals(Lang.python)) {
             ProcessBuilder processBuilder = new ProcessBuilder();
             processBuilder.directory(new File(WORKING_DIR));
             processBuilder.command("python3", executableFilename);

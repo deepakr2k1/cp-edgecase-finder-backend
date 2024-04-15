@@ -16,7 +16,7 @@ public class AppConstants {
     public enum Lang {
         cpp,
         java,
-        py
+        python
     }
 
     public enum Filetype {
